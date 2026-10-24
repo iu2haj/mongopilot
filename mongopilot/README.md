@@ -19,92 +19,7 @@ monitoring uses the MongoDB protocol, automation and hardware metrics use SSH.
   A confirmation shows the target; with `--drop` you type the deployment name. Each run is listed in a history with
   status, command (no password) and output. Uploaded files are listed too and can be downloaded or deleted.
 
-### Upgrading from 0.4
 
-Rebuild the image. `mongorestore` and `mongoimport` come with the MongoDB Database Tools already installed by 0.4.
-Uploads are limited to 20 GB by default (`MP_MAX_UPLOAD_MB`).
-
-## What was new in 0.4
-
-- **Tools column** in the process table of every deployment: open **mongosh**, **mongodump**, **mongoexport** or the
-  **Schema Analyzer** on a specific node (direct connection to that node). Credentials: MongoPilot's admin user
-  (deployments it created), the monitoring user (metadata only) or any other user, kept in the page and never saved.
-- **mongosh in the browser**: a real `mongosh` runs in a pseudo-terminal inside the MongoPilot container and is shown
-  with a terminal emulator (xterm.js, bundled), with history, tab completion and Ctrl+C. Idle sessions close after
-  30 minutes.
-- **mongodump** form (database, collection, query, excluded collections, `--oplog`, users and roles, parallelism) and
-  **mongoexport** form (JSON or CSV, fields, query, sort, limit, skip, JSON options, gzip). Both run in the
-  background; the list shows date, description, node, content, size and status, with **Download**, details (command
-  without password, output, `mongorestore` hint) and delete. Files live in `/data/exports` in the MongoPilot volume.
-- **Schema Analyzer** similar to the Schema tab of MongoDB Compass: `$sample` of up to 10,000 documents after an
-  optional filter; for every field (nested documents and arrays of documents included) presence, type distribution,
-  top values, histograms of numbers and dates, day of week and hour, string lengths, ObjectId creation times, array
-  lengths. Click a value to add it to the filter; download the analysis as JSON.
-- **CPU and memory for deployments not created by MongoPilot**: from `serverStatus().extra_info`
-  (`user_time_us`, `system_time_us`, normalized by the cores reported by `hostInfo`) and `serverStatus().mem`
-  (resident, virtual, resident share of host RAM). They appear in the Host and Key metrics groups when MongoPilot has
-  no SSH access to the host, and in the process table. They describe the mongod/mongos process, not the whole machine.
-
-### Upgrading from 0.3 to 0.4
-
-Rebuild the image (`docker compose up -d --build`): it now installs `mongosh` and the MongoDB Database Tools from
-MongoDB's Debian 12 repository. MongoDB publishes these packages for x86_64 only: on ARM hosts the image builds
-without them and the Tools pages say so (the Schema Analyzer works anyway). The database migrates automatically.
-
-## What was new in 0.3
-
-- **Node status icons** in the topology map and process tables: primary, secondary, hidden, delayed, passive
-  (priority 0 or non-voting), arbiter, config server, mongos router, starting/recovering, unreachable, with a legend.
-- **MongoDB 9.0**: new clusters can run 9.0.x, and rolling upgrades follow MongoDB's paths: 8.0 or 8.3 → 9.0 directly,
-  8.0 → 8.2 → 8.3 (minor releases cannot be skipped), FCV `9.0` set with `confirm: true`. Servers on platforms 9.0
-  no longer supports (Ubuntu 20.04) are refused before anything is installed.
-- **Sharded cluster creation**: config server replica set, any number of shards (each a replica set, with hidden,
-  delayed and arbiter members), and mongos routers. Rolling restart, upgrade and configuration changes stop the
-  balancer and go config servers → shards → mongos, as MongoDB documents.
-- **TLS** per deployment (TLS tab): generate a private CA and a certificate per server, or upload your own CA and
-  `certificate + private key` PEM files (checked for SAN coverage, expiry, key match and CA signature). MongoPilot uses
-  the staged procedure: rolling restart in `allowTLS`, then `preferTLS` and `requireTLS` at runtime; disabling TLS goes
-  the opposite way. MongoPilot switches its own connection to TLS automatically; the CA can be downloaded for apps.
-- **Parameters** (Parameters tab): every `getParameter` value of any process, searchable, with type-aware editors.
-  Changes are applied at runtime with `setParameter` on one process, a replica set or all processes of the same kind,
-  and can be saved in the configuration files (startup-only parameters are saved and applied with a rolling restart).
-  Monitored-only deployments show parameters read-only.
-- **Configuration files** (Configuration files tab): edit the YAML of any `mongod`/`mongos`, apply to one process or
-  to all processes of the same binary, compare with the file on the server. Files are validated on the server with
-  `--outputConfig` before being installed; keys MongoPilot owns (port, dbPath, replSetName, cluster role, keyFile, log
-  path, TLS) are protected.
-- **Tags**: Organization, Project, Cluster type (Production, Staging, Development), License key and License type
-  (At node, At memory), set when creating or registering a deployment or later in *Settings and tags*.
-- **Deployments page with filters**: by cluster name, topology, cluster type, organization, project, license type
-  and license key. Filters are remembered in the browser.
-
-### Upgrading from 0.2 to 0.3
-
-The database is migrated automatically (a `tags` column is added). Deployments created by 0.2 keep working; their
-configuration files become editable from the Configuration files tab (the first apply rewrites them in the 0.3 format).
-
-## What was new in 0.2
-
-- **English everywhere**: interface, API errors, job logs, alerts, files written on the servers.
-- **Vagrant onboarding**: upload the machine's `private_key` file (drag and drop), import every machine at once from
-  `vagrant ssh-config`, Vagrant VMs don't pin SSH host keys (they change when a VM is re-created), clear errors when a
-  certificate, a public key, a PuTTY key or a passphrase-protected key is uploaded instead of a private key.
-  A sample `vagrant/Vagrantfile` creates a 3-VM lab.
-- **About 90 metrics** (was 31), following MongoDB's monitoring guidance: operation execution time, query targeting,
-  scan and order, documents per second, cursors, transactions, WiredTiger cache I/O and evictions, normalized process
-  CPU, storage sizes, oplog GB/hour, replication headroom, elections, balancer state and jumbo chunks, plus **host
-  hardware metrics** over SSH (normalized system CPU, disk IOPS and latency, disk utilization, free disk, memory).
-- **Query performance section**: slow queries captured from each member's log, grouped by query shape, with an
-  **index advisor** that suggests indexes to create (ESR rule) and finds unused and redundant indexes, with
-  ready-to-copy `createIndex`, `hideIndex` and `dropIndex` commands.
-- 12 new default alert rules (query targeting, latency, queues, headroom, CPU, disk latency, free disk…).
-
-### Upgrading from 0.1 to 0.2
-
-Your data volume is kept and migrated automatically (default alert rules are renamed to English, new ones are added).
-Before replacing the folder, **copy your `docker-compose.yml` customizations** (for example `extra_hosts`) into the
-new file, then run `docker compose up -d --build`. If you only used the demo, run `docker compose down -v` first to
-start from clean demo data.
 
 ## Feature overview
 
@@ -138,7 +53,53 @@ cp .env.example .env          # Windows: copy .env.example .env
 # edit .env: set MP_ADMIN_PASSWORD and MP_DEMO=true
 docker compose up -d --build
 ```
+Note: (example of file ".env")
+```bash
+# Copy this file to .env and adjust it.
 
+# Web interface login (HTTP Basic). Use a long password.
+MP_ADMIN_USER=admin
+MP_ADMIN_PASSWORD=change-me-to-a-long-password
+
+# Key that encrypts MongoDB credentials, SSH private keys and channel settings.
+# Generate it once (e.g. `openssl rand -base64 48`) and DO NOT lose it:
+# without the same key the stored secrets can no longer be read.
+MP_SECRET_KEY=
+
+# Address users open MongoPilot at (used in notification links)
+MP_PUBLIC_URL=http://mongopilot.company.local:8080
+
+# Monitoring
+MP_POLL_INTERVAL=30
+MP_RETENTION_DAYS=14
+MP_SLOW_OP_SECONDS=5
+
+# Email (optional)
+MP_SMTP_HOST=
+MP_SMTP_PORT=587
+MP_SMTP_USER=
+MP_SMTP_PASSWORD=
+MP_SMTP_FROM=mongopilot@company.local
+MP_SMTP_STARTTLS=true
+
+# Isolated networks: internal mirror of the MongoDB tarballs (same file names as fastdl.mongodb.org/linux)
+MP_MONGODB_MIRROR=
+
+# Demo with simulated clusters: true to try the interface without real servers
+MP_DEMO=false
+
+# Tools pages (mongosh, mongodump, mongoexport, Schema Analyzer). The Docker image installs the tools;
+# change these only to use other binaries.
+# MP_MONGOSH=mongosh
+# MP_MONGODUMP=mongodump
+# MP_MONGOEXPORT=mongoexport
+# Largest sample the Schema Analyzer may request
+# MP_SCHEMA_MAX_SAMPLE=10000
+# MP_MONGORESTORE=mongorestore
+# MP_MONGOIMPORT=mongoimport
+# Largest file that can be uploaded for mongorestore / mongoimport (MB)
+# MP_MAX_UPLOAD_MB=20480
+```
 Open http://localhost:8080 and sign in with `admin` and the password from `MP_ADMIN_PASSWORD`. The demo has three
 simulated clusters (a managed replica set with a realistic slow-query workload, a monitored replica set with an
 almost full disk, a sharded cluster) and six simulated Vagrant VMs.
