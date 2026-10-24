@@ -1,0 +1,43 @@
+services:
+  mongopilot:
+    build: .
+    image: mongopilot:0.5.0
+    container_name: mongopilot
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file: .env
+    volumes:
+      - mongopilot-data:/data
+    extra_hosts:
+      - "node04.mongodb.lab:192.168.0.23"
+      - "node05.mongodb.lab:192.168.0.24"
+      - "node06.mongodb.lab:192.168.0.25"
+
+    # --- Network -----------------------------------------------------------
+    # The container already reaches your computer's network (outbound NAT).
+    # Uncomment what you need, keeping the indentation: "extra_hosts:" must
+    # start with 4 spaces, the lines with "-" with 6 spaces.
+
+    # 1) Names the container cannot resolve (hosts file of the computer, .local
+    #    names, DNS reachable only over VPN): map name -> IP. Include the names
+    #    used in the replica set configuration.
+    # extra_hosts:
+    #   - "db1.company.local:192.168.1.21"
+    #   - "db2.company.local:192.168.1.22"
+
+    # 2) Or use the company DNS server.
+    # dns:
+    #   - 192.168.1.1
+
+# 3) If your network or VPN uses 172.16.x-172.31.x addresses, Docker's internal
+#    network can overlap and capture that traffic. Move the container network
+#    to a range you do not use.
+# networks:
+#   default:
+#     ipam:
+#       config:
+#         - subnet: 10.250.0.0/24
+
+volumes:
+  mongopilot-data:

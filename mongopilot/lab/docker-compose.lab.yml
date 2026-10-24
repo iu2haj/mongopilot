@@ -1,0 +1,24 @@
+# Lab for a first test of monitoring against a real MongoDB.
+# Starts a 3-node replica set (no authentication, test only) and MongoPilot on the same network.
+#
+#   docker compose -f lab/docker-compose.lab.yml up -d --build
+#   docker compose -f lab/docker-compose.lab.yml exec mongo1 mongosh --quiet --eval \
+#     'rs.initiate({_id:"rs0",members:[{_id:0,host:"mongo1:27017"},{_id:1,host:"mongo2:27017"},{_id:2,host:"mongo3:27017"}]})'
+#
+# Then open http://localhost:8080 (admin / lab-password-123) → "Monitor an existing deployment"
+# with the connection string: mongodb://mongo1:27017,mongo2:27017,mongo3:27017/?replicaSet=rs0
+# To simulate a failure:  docker compose -f lab/docker-compose.lab.yml stop mongo2
+
+services:
+  mongo1: &mongo
+    image: mongo:7.0
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+  mongo2: *mongo
+  mongo3: *mongo
+  mongopilot:
+    build: ..
+    ports: ["8080:8080"]
+    environment:
+      MP_ADMIN_PASSWORD: lab-password-123
+      MP_POLL_INTERVAL: "10"
+    depends_on: [mongo1, mongo2, mongo3]

@@ -1,0 +1,40 @@
+# Sample lab for MongoPilot: three Ubuntu 22.04 VMs on a VirtualBox host-only network.
+# (Hyper-V ignores static private_network IPs, so use the VirtualBox provider.)
+#
+#   cd vagrant
+#   vagrant up
+#   vagrant ssh-config        # paste the output in MongoPilot: Servers > Import Vagrant machines
+#
+# Each VM gets a fixed private IP (192.168.56.11-13). Use that IP as "MongoDB host name" so that
+# replica set members can reach each other. MongoPilot connects to the same IPs for SSH and monitoring.
+# The vagrant user has passwordless sudo, which MongoPilot needs for automation.
+
+NODES = {
+  "mongo1" => "192.168.56.11",
+  "mongo2" => "192.168.56.12",
+  "mongo3" => "192.168.56.13",
+}
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/ubuntu-22.04"
+  config.vm.box_check_update = false
+
+  NODES.each do |name, ip|
+    config.vm.define name do |node|
+      node.vm.hostname = name
+      node.vm.network "private_network", ip: ip
+
+      node.vm.provider "virtualbox" do |vb|
+        vb.name = "mongopilot-#{name}"
+        vb.memory = 2048   # MongoDB needs at least 2 GB to be comfortable
+        vb.cpus = 2
+      end
+
+      # Let members resolve each other by name too (optional: MongoPilot uses the IPs)
+      node.vm.provision "shell", inline: <<-SHELL
+        #{NODES.map { |n, i| "grep -q ' #{n}$' /etc/hosts || echo '#{i} #{n}' >> /etc/hosts" }.join("\n")}
+        apt-get update -qq && apt-get install -y -qq curl >/dev/null
+      SHELL
+    end
+  end
+end
