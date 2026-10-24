@@ -9,10 +9,10 @@ services:
     env_file: .env
     volumes:
       - mongopilot-data:/data
-    extra_hosts:
-      - "node04.mongodb.lab:192.168.0.23"
-      - "node05.mongodb.lab:192.168.0.24"
-      - "node06.mongodb.lab:192.168.0.25"
+#    extra_hosts:
+#      - "node01:192.168.0.1"
+#      - "node02:192.168.0.2"
+#      - "node03:192.168.0.3"
 
     # --- Network -----------------------------------------------------------
     # The container already reaches your computer's network (outbound NAT).
